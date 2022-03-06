@@ -186,16 +186,17 @@ func (mx *MatrixHandler) createPrivatePortalFromInvite(roomID id.RoomID, inviter
 	}
 	portal.log.Infofln("Created private chat portal in %s after invite from %s", roomID, inviter.MXID)
 	intent := puppet.DefaultIntent()
+	
+	_, err := intent.InviteUser(roomID, &mautrix.ReqInviteUser{UserID: mx.bridge.Bot.UserID})
+	if err != nil {
+		portal.log.Warnln("Failed to invite bridge bot to enable e2be and make displaying bridge read receipts work:", err)
+	}
+	err = mx.bridge.Bot.EnsureJoined(roomID)
+	if err != nil {
+		portal.log.Warnln("Failed to join as bridge bot to enable e2be and make displaying bridge read receipts work:", err)
+	}
 
 	if mx.bridge.Config.Bridge.Encryption.Default {
-		_, err := intent.InviteUser(roomID, &mautrix.ReqInviteUser{UserID: mx.bridge.Bot.UserID})
-		if err != nil {
-			portal.log.Warnln("Failed to invite bridge bot to enable e2be:", err)
-		}
-		err = mx.bridge.Bot.EnsureJoined(roomID)
-		if err != nil {
-			portal.log.Warnln("Failed to join as bridge bot to enable e2be:", err)
-		}
 		_, err = intent.SendStateEvent(roomID, event.StateEncryption, "", &event.EncryptionEventContent{Algorithm: id.AlgorithmMegolmV1})
 		if err != nil {
 			portal.log.Warnln("Failed to enable e2be:", err)
